@@ -1,0 +1,118 @@
+%        File: model_formulation.tex
+%     Created: Mon Jan 29 09:00 AM 2018 E
+% Last Change: Mon Jan 29 09:00 AM 2018 E
+%
+\documentclass[a4paper]{article}
+
+\title{A Linear Programming Representaiton of the 1 Dimensional PMCLP-PCR Problem}
+\author{Nathan Wycoff}
+
+\begin{document}
+
+\maketitle
+
+\section{Index Sets}
+
+\begin{enumerate}
+    \item Supply Zone index $i \in \{1, \ldots, p\}$
+    \item Demand Zone index $j \in \{1, \ldots, n\}$
+\end{enumerate}
+
+\section{Parameters}
+
+\begin{enumerate}
+    \item Weight of target $j$: $v_j$.
+    \item Length of DZ $j$: $l_j$.
+    \item Beginning point of DZ on axis $j$: $c_{j}$.
+    \item Length of SZ $i$: $s_i$.
+\end{enumerate}
+
+\section{Decision Variables}
+
+\begin{enumerate}
+    \item Where SZ $i$ begins along DZ $j$: $x_{i,j,f}$.
+    \item Where SZ $j$ ends along DZ $j$: $x_{i,j,t}$.
+\end{enumerate}
+
+\section{Objective Function}
+
+The objective is to maximize coverage. The coverage function is complicated by the fact that multiple coverage must be accounted for. 
+
+$k$'th order coverage is defined as area on a particular DZ covered by exactly $k$ zones simultaneously. 
+
+$k$'th order coverage among given SZ's may be detected by looking at difference between the minimum ``to" value among all SZ's and the maximum ``from" value among SZ's in consideration.
+
+In math notation, let $I$ be a set of supply zone indecies, and let $a = |I|$. Then the simultaneous coveage of those $a$ supply zones can be determined as for DZ $j$ is:
+
+$$\min_{i \in I} [x_{i,j,t}] - \max_{i' \in I} [x_{i',j,f}]$$
+
+To determine $a$'th order coverage, we must sum the area covered simultaneously by all possible $a$-tuples. There are $p\choose a$ such tuples.
+
+There are therefore $\sum_{k=1}^p p\choose a$ many terms in the objective function, partitioned into $p$ parts by ``order" of coverage.
+
+Let us define $\mathcal{I}_k$ as the set of all sets of $k$ indices.
+
+\vspace{1em}
+
+Calculating coverage is good and well, but we need to relate this coverage back to the objective function. In calculating first order coverage, we double count areas covered by two SZ's, so we must subtract double coverage. However, subtracting double coverage gets rid of areas covered by three SZ's, so we must add back four-times-covered area, which removes five-times-covered area twice, which we must add back, and so on\ldots
+
+Therefore, the objective function is to maximize the following expression:
+
+$$\textrm{maximize } \sum_{j=1}^n\sum_{k=1}^{p} \sum_{I \in \mathcal{I}_k} 
+(-1)^{k-1}(\min_{i \in I} [x_{i,j,t}] - \max_{i' \in I} [x_{i',j,f}])$$
+
+\subsection{Reformulation as a Linear Objective}
+
+Though the objective function is presently nonlinear, we may linearize it with the aide of some constraints and slack variables.
+
+We first need to change all $\max$'s in the objective to $min$'s. This may be done by negating $min$'s arguments, and then negating the entire extremum statement, i.e. $max\{a : a \in A\}$ becomes $-min\{-a : a \in A\}$.
+
+At this stage, the objective function becomes:
+
+$$\textrm{maximize }\sum_{j=1}^n\sum_{k=1}^{p} \sum_{I \in \mathcal{I}_k} 
+(-1)^{k-1}(\min_{i \in I} [x_{i,j,t}] + \min_{i' \in I} [-x_{i',j,f}])$$
+
+It is possible to linearize $min$ statements under a maximization problem by adding a surplus variable which is constrained to be less than its arguments, that is:
+
+$$\textrm{maximize: } \min\{a : a \in A\}$$
+
+becomes
+
+$$\textrm{maximize } x$$
+
+$$st: - a + x \leq 0 \forall a \in A$$.
+
+Given some ordering $r$ of the sets in each $\mathcal{I}_k$, we may therefore reformulate our objective as:
+
+
+$$\textrm{maximize }\sum_{j=1}^n\sum_{k=1}^{p} \sum_{r=1}^{|\mathcal{I}_k|}
+(-1)^{k-1} (y_{k,j,r,t} + y_{k,j,r,f})$$
+
+This is a linear function, as desired. However, as we just discussed, we need to add constraints. These will be discussed in the next section.
+
+\section{Constraints}
+
+\begin{enumerate}
+    \item Don't fall off the DZ axes ($2pn$ constraints):
+        $$x_{i,j,f} \leq l_j \forall i$$
+        $$x_{i,j,t} \leq l_j \forall i$$
+    \item DZ axis variables must map back to rectangles ($pn^2$ constraints):
+        $$x_{i,j,t} - x_{i,j',f} \leq s_i \forall i,j,j'$$
+    \item No "negative extent" rectanges ($np$ constraints):
+        $$x_{i,j,t} - x_{i,j,f} \geq 0 \forall i,j$$
+    \item Nonnegativity ($2np$ constraints):
+        $$x_{i,j,t} \geq 0 \forall i,j$$
+        $$x_{i,j,f} \geq 0 \forall i,j$$
+\end{enumerate}
+
+\subsection{Linearizing Constraints}
+
+Further, if we wish to linearlize the objective function as discussed above, we must add these constraints on the slack variables:
+
+$$y_{k,j,r,t} \leq x_{i,j,t} \forall k,r,j,i \in I_{r,k}$$
+
+$$y_{k,j,r,f} \leq x_{i,j,f} \forall k,r,j,i \in I_{r,k}$$
+
+This induces $n \sum_{k=1}^{p}$ ${p}\choose{k}$ $2k$ constraints.
+
+\end{document}
