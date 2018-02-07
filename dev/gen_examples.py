@@ -16,7 +16,7 @@ execfile('comb_funcs.py')
 p = 10
 n = 2
 v = range(n)
-l = range(p)
+l = range(n)
 c = range(n)
 s = range(p)
 

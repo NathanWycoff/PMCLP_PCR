@@ -92,7 +92,7 @@ $$\textrm{maximize }\sum_{j=1}^n\sum_{k=1}^{p} \sum_{r=1}^{|\mathcal{I}_k|}
 
 This is a linear function, as desired. However, as we just discussed, we need to add constraints. These will be discussed in the next section.
 
-There were $2np$ many variables prior to linearization. As discussed above, there are $n\sum_{k=1}^p {p \choose k}$ many terms in the objective, each of which has two slack variables, adding $2n \sum_{k=1}^p {p \choose k}$ variables for $2np + 2n\sum_{k=1}^p {p \choose k}$ many variables in the linearized problem in total.
+There were $2np$ many variables prior to linearization. As discussed above, there are $n\sum_{k=1}^p {p \choose k}$ many terms in the objective, each of which has two slack variables, adding $2n \sum_{k=1}^p {p \choose k}$ variables for $2np + 2n\sum_{k=1}^p {p \choose k}$ many variables in the linearized problem in total. This may be simplified as $2np + n2^p$ many variables.
 
 \section{Constraints}
 
@@ -115,8 +115,12 @@ Further, if we wish to linearlize the objective function as discussed above, we 
 
 $$y_{k,j,r,t} \leq x_{i,j,t} \forall k,r,j,i \in I_{r,k}$$
 
-$$y_{k,j,r,f} \leq x_{i,j,f} \forall k,r,j,i \in I_{r,k}$$
+$$y_{k,j,r,f} \leq -x_{i,j,f} \forall k,r,j,i \in I_{r,k}$$
 
 This induces $n \sum_{k=1}^{p} {p\choose k} 2k$ constraints.
+
+\vspace{2em}
+
+In total, we therefore have $np(3 + p + 2^p)$ many constraints.
 
 \end{document}

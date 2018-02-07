@@ -34,8 +34,7 @@ rows = [[range(m), x] for x in mat]
 # Store things in the cplex object.
 prob.objective.set_sense(prob.objective.sense.maximize)
 prob.variables.add(obj=my_obj, names=my_colnames)
-prob.linear_constraints.add(lin_expr=rows, senses=my_sense,
-                            rhs=my_rhs, names=my_rownames)
+prob.linear_constraints.add(lin_expr=rows, rhs=my_rhs)
 
 # Solve the problem.
 prob.solve()
