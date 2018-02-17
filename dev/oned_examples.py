@@ -2,17 +2,6 @@
 # -*- coding: utf-8 -*-
 #  oned_examples.py Author "Nathan Wycoff <nathanbrwycoff@gmail.com>" Date 02.07.2018
 
-## Here's the module load commands I use, I should get rid of these someday
-#TODO: Get rid of these
-module load Anaconda cplex
-
-#Since I have built the cplex module in a nonstandard location, I need to add it to the path
-#in order to load the module
-import sys
-sys.path.append('/home/nathw95/python_paks/pkgs/cplex/lib/python/')
-import cplex
-
-
 # Some tests in 1D
 execfile('form_pmclp_pcr.py')
 
@@ -25,7 +14,9 @@ l = [1.1]
 c = [0.2]
 s = [1.1]
 
-prob = form_pmclp_pcr_1d(p, n, v, l, c, s)
+ret = form_pmclp_pcr_1d(p, n, v, l, c, s)
+prob = ret[0]
+inp = ret[1]
 
 # Solve the problem.
 #The expected answer is x_00t = 0, x_00f = 1.1
@@ -47,6 +38,26 @@ prob = ret[0]
 inp = ret[1]
 
 # Solve the problem, the max value is 3.4
+prob.solve()
+prob.solution.get_objective_value()
+sol = prob.solution.get_values()
+x_vals = sol[-(2*n*p):]
+
+#################################################################
+## Two DZ's, one SZ that's only big enough to cover one, one is more valuable
+## than the other.
+p = 1
+n = 2
+v = [10.0, 1.0]
+l = [1.0, 1.0]
+c = [0.0, 10.0]
+s = [2.0]
+
+ret = form_pmclp_pcr_1d(p, n, v, l, c, s)
+prob = ret[0]
+inp = ret[1]
+
+# Expect it to only cover the first zone, givin us [0, 1, 0, 0] and a value of 10.0
 prob.solve()
 prob.solution.get_objective_value()
 sol = prob.solution.get_values()
