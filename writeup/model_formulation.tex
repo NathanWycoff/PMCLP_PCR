@@ -4,6 +4,9 @@
 %
 \documentclass[a4paper]{article}
 
+\usepackage{amsmath}
+\usepackage{graphicx}
+
 \title{A Linear Programming Representation of the 1 Dimensional PMCLP-PCR Problem}
 \author{Nathan Wycoff}
 
@@ -11,7 +14,57 @@
 
 \maketitle
 
+\section{Intuitive Introduction of Solution Space}
+
+In order to formulate the PMCLP-PCR in canonical optimization format, we abondon the vector-space-valued solution-space in favor for a different representation.
+
+To build intuition, let's begin by taking a journey to 2D problems. We'll go back to the 1D case shortly.
+
+The bottom and left sides of each Demand Zone (DZ) act as axes. Instead of the natural axes for Cartesian space, these axes are of finite length.
+
+Let $w_j$ and $h_j$ represent the width and height of the $j^{th}$ DZ. The solution set consists of the following Cartesian product:
+
+$$x \in [0,w_1]^2 \times [0,h_1]^2 \times [0,w_2]^2 \times [0,h_2]^2 \times \ldots \times [0,w_p]^2 \times [0,h_p]^2$$
+
+Each pair of coordinates represents the ``from" and ``to" of the rectangle along each axis. 
+
+The natural basis on such a space is the $2p$ elements with 0's in all components except for a 1 in a certain component.
+
+ For the purposes of nomenclature, this space will be referred to as Demand Space. 
+ 
+ Some elements in this space can be mapped back to candidates for optimal rectangles, by creating the rectangle that passes through all the points.
+ 
+ We denote our decision variables as $x_{i,j,\{h,v\}, \{f,t\}}$ to denote the location of the $i^{th}$ SZ on the $j^{th}$ DZ. If there is no overlap, all variables are 0. If there is overlap along a certain axis ($v$ for vertical and $h$ for horizontal, though this could be generalized for higher dimensional space), the $x_{...f}$ variable denotes the ``from", where the overlap begins, and the $x_{...t}$ variable denotes the ``to", where the SZ and DZ no longer meet, again, all in terms of the ``axes" of demand space: the bottom and left sides for each DZ.
+ 
+ Examples will be illuminating:
+ 
+ \includegraphics[scale=0.5]{../../images/axis_example_1.png}
+ 
+ In this case, the supply zone (orange) partially overlaps two demand zones. We can represent this SZ in demand space:
+ 
+ Since the SZ begins $a1$ along DZ1's horizontal axis, we set $x_{1,1,h,f} = a1$, and since it goes all the way off the right side, we set $x_{1,1,f,t} = w_1$, the width of the DZ, and the maximum value of the variable. 
+ 
+ Similarly, it begins $b1$ along the vertical axis of DZ1, so we set $x_{1,1,v,f} = b1$, and again goes off the top, so we set $x_{1,1,v,t} = h1$. 
+ 
+ There is also overlap with DZ2 which must be accounted for. Since the SZ covers the ``origin" of DZ2, we have that $x_{1,2,h,f} = x_{1,2,v,f} = 0$. Since it doesn't cover the entire DZ, we have that $x_{1,2,h,t} = a2$ and $x_{1,2,v,t} = b2$.
+ 
+ Hypothetically, if there had been a 3rd DZ that was offscreen (not covered at all by the SZ), we would have that $x_{1,3,h,f} = x_{1,3,h,t} = x_{1,3,v,f} = x_{1,3,v,t} = 0$.
+ 
+ \vspace{1em}
+ 
+ Note that this ``alternative basis", demand space, does not have the ability to uniquely represent all feasible solutions to the original problem. For instance:
+ 
+ \includegraphics[scale=0.5]{../../images/axis_example_2.png}
+ 
+The SZ does not overlap with any DZ's. It, along with all other SZ solutions which do not overlap at all with a DZ, may be represented by the zero vector in demand space. 
+
+This nonuniqueness is not a problem, as we can pick any corresponding rectangle to get the same optimal value. A similar issue will occur if an SZ is larger than a DZ that it covers in either height or width.
+    
+Note also that many members of Demand Space do not have a rectangular representation. We add constraints to make sure that these elements are not also elements of our feasible space.
+
 \section{Index Sets}
+
+Back to the 1D problem:
 
 \begin{enumerate}
     \item Supply Zone index $i \in \{1, \ldots, p\}$
@@ -21,7 +74,7 @@
 \section{Parameters}
 
 \begin{enumerate}
-    \item Weight of target $j$: $v_j$.
+    \item Weight of DZ $j$: $v_j$.
     \item Length of DZ $j$: $l_j$.
     \item Beginning point of DZ on axis $j$: $c_{j}$.
     \item Length of SZ $i$: $s_i$.
@@ -34,65 +87,23 @@
     \item Where SZ $j$ ends along DZ $j$: $x_{i,j,t}$.
 \end{enumerate}
 
-There are therefore $2np$ many variables at this stage, linearization will induce more.
+There are therefore $2np$ many variables at this stage. Note that unlike the 2D example, there is no ``width" or ``height" index, as there is only 1 axis in 1D. In general dimensions, we would have additional variables to record distance along each dimension.
 
 \section{Objective Function}
 
-The objective is to maximize coverage. The coverage function is complicated by the fact that multiple coverage must be accounted for. 
+The objective is to maximize weighted coverage. The coverage function is complicated by the fact that multiple coverage must be accounted for. We can determine the amount of coverage a configuration of SZ's has for a particular DZ by taking the maximum extent, and subtracting from it the minimum extent (call $\gamma_j$ the coverage of DZ $j$):
 
-$k$'th order coverage is defined as area on a particular DZ covered by exactly $k$ zones simultaneously. 
+$$
+\gamma_j = \max_{\forall i}\{x_i,j,t\} - \min_{\forall i}\{x_i,j,f\}
+$$
 
-$k$'th order coverage among $k$ given SZ's may be detected by looking at difference between the minimum ``to" value among all SZ's and the maximum ``from" value among SZ's in consideration.
+The objective is to maximize the sum of these coverages, weighted by the DZ weights:
 
-In math notation, let $I$ be a set of supply zone indices, and let $a = |I|$. Then the simultaneous coverage of those $a$ supply zones over DZ $j$ can be determined as:
+$$
+\sum_{j=1}^n v_j \gamma_j = \sum_{j=1}^n v_j(\max_{\forall i}\{x_i,j,t\} - \min_{\forall i}\{x_i,j,f\})
+$$
 
-$$\min_{i \in I} [x_{i,j,t}] - \max_{i' \in I} [x_{i',j,f}]$$
-
-To determine $a$'th order coverage, we must sum the area covered simultaneously by all possible $a$-tuples. There are $p\choose a$ such tuples.
-
-There are therefore $\sum_{k=1}^p {p\choose a}$ many terms in the objective function, partitioned into $p$ parts by ``order" of coverage, for each DZ, giving $n\sum_{k=1}^p {p\choose a}$ terms in total.
-
-Let us define $\mathcal{I}_k$ as the set of all sets of indices of cardinality $k$.
-
-\vspace{1em}
-
-Calculating coverage is good and well, but we need to relate this coverage back to the objective function. In calculating first order coverage, we double count areas covered by two SZ's, so we must subtract double coverage. However, subtracting double coverage gets rid of areas covered by three SZ's twice, so we must add back triple covered area, which counts four-times-covered area twice, which we must subtract, and so on\ldots
-
-Therefore, the objective function is to maximize the following expression:
-
-$$\textrm{maximize } \sum_{j=1}^n\sum_{k=1}^{p} \sum_{I \in \mathcal{I}_k} 
-(-1)^{k-1}(\min_{i \in I} [x_{i,j,t}] - \max_{i' \in I} [x_{i',j,f}])$$
-
-\subsection{Reformulation as a Linear Objective}
-
-Though the objective function is presently nonlinear, we may linearize it with the aide of some constraints and slack variables.
-
-We first need to change all $\max$'s in the objective to $\min$'s. This may be done by negating $\min$'s arguments, and then negating the entire extremum statement, i.e. $\max\{a : a \in A\}$ becomes $-\min\{-a : a \in A\}$.
-
-At this stage, the objective function becomes:
-
-$$\textrm{maximize }\sum_{j=1}^n\sum_{k=1}^{p} \sum_{I \in \mathcal{I}_k} 
-(-1)^{k-1}(\min_{i \in I} [x_{i,j,t}] + \min_{i' \in I} [-x_{i',j,f}])$$
-
-It is possible to linearize $\min$ statements under a maximization problem by adding a surplus variable which is constrained to be less than its arguments, that is:
-
-$$\textrm{maximize: } \min\{a : a \in A\}$$
-
-becomes
-
-$$\textrm{maximize } x$$
-
-$$st: - a + x \leq 0 \forall a \in A$$.
-
-Given some ordering $r$ of the sets in each $\mathcal{I}_k$, we may therefore reformulate our objective as:
-
-
-$$\textrm{maximize }\sum_{j=1}^n\sum_{k=1}^{p} \sum_{r=1}^{|\mathcal{I}_k|}
-(-1)^{k-1} (y_{k,j,r,t} + y_{k,j,r,f})$$
-
-This is a linear function, as desired. However, as we just discussed, we need to add constraints. These will be discussed in the next section.
-
-There were $2np$ many variables prior to linearization. As discussed above, there are $n\sum_{k=1}^p {p \choose k}$ many terms in the objective, each of which has two slack variables, adding $2n \sum_{k=1}^p {p \choose k}$ variables for $2np + 2n\sum_{k=1}^p {p \choose k}$ many variables in the linearized problem in total. This may be simplified as $2np + n2^p$ many variables.
+I'm not yet sure how to linearize this constraint, though I believe it to be possible.
 
 \section{Constraints}
 
@@ -100,8 +111,30 @@ There were $2np$ many variables prior to linearization. As discussed above, ther
     \item Don't fall off the DZ axes ($2pn$ constraints):
         $$x_{i,j,f} \leq l_j \forall i$$
         $$x_{i,j,t} \leq l_j \forall i$$
-    \item DZ axis variables must map back to rectangles ($pn^2$ constraints):
-        $$x_{i,j,t} - x_{i,j',f} \leq s_i \forall i,j,j'$$
+    \item We need DZ axis variables to map back to rectangles that are within specifications. This constraint may be phrased as such:
+        $$
+        x_{i,j,t} - x_{i,j,f} > 0 \implies x_{i,j,t} + c_{j} - x_{i,j',f} - c_{j'} \leq s_i \forall i,j,j'
+        $$
+
+        That is, if a DZ is ``active"  with respect to demand zone $i$, we need to make sure that it doesn't strech the SZ more than it can bear. 
+
+        We can partially linearize this constraint as follows. Introduce a binary variable $b_{i,j}$ for each DZ-SZ relationship. Then, introduce this constraint:
+        
+        $$
+        x_{i,j,t} - x_{i,j,f} \leq s_i b_{i,j}
+        $$
+
+        This gives us that if DZ $j$ is active wrt SZ $i$, $b_{i,j} = 1$ (Note: this is not an if and only if relationship. I believe that this is not problematic, since it will be iff at optimality. This deserves more investigation). 
+
+        So now we have a switch for each DZ-SZ pair, giving 1 if the pair is active. We can use this to create conditional constraints which are linear. Let $R$ denote the range of possible values in the original space, $R = \max_{i}\{c_i + l_i\} - \min_{i}\{c_i\}$.
+        $$
+        x_{i,j',t} + c_{j'} - x_{i,j,f} - c_j + Rb_{i,j} + Rb_{i,j'} \leq s_i + 2R
+        $$
+        Let's examine these constraints for each possible value of $b_{i,j}$ and $b_{i,j'}$. If one of the two is equal to 1, we can remove the corresponding $R$ from both sides, but there will still be an $R$ on the RHS. By design, a quantity of at least $R$ on the RHS means this constraint will always be satisfied (and $s_i$, being a length, is nonnegative). The situation is similar if both $b$'s are zero. However, if both are one, all terms involving $R$ cancel, and we are left with the original, desired constraint. 
+
+        But as mentioned earlier, if $x_{i,j,t} - x_{i,j,f} = 0$, there's no guarantee that the corresponding $b_{i,j} = 0$; it could be $1$. This means that we could have more constraints active than necessary. However, removing this constraint would lead to a decrease in the cost, and will therefore occur at optimality.
+
+
     \item No ``negative extent" rectangles ($np$ constraints):
         $$x_{i,j,t} - x_{i,j,f} \geq 0 \forall i,j$$
     \item Nonnegativity ($2np$ constraints):
@@ -109,18 +142,8 @@ There were $2np$ many variables prior to linearization. As discussed above, ther
         $$x_{i,j,f} \geq 0 \forall i,j$$
 \end{enumerate}
 
-\subsection{Linearizing Constraints}
+\section{In General Dimension}
 
-Further, if we wish to linearlize the objective function as discussed above, we must add these constraints on the slack variables:
-
-$$y_{k,j,r,t} \leq x_{i,j,t} \forall k,r,j,i \in I_{r,k}$$
-
-$$y_{k,j,r,f} \leq -x_{i,j,f} \forall k,r,j,i \in I_{r,k}$$
-
-This induces $n \sum_{k=1}^{p} {p\choose k} 2k$ constraints.
-
-\vspace{2em}
-
-In total, we therefore have $np(3 + p + 2^p)$ many constraints.
+In general, we are trying to maximize the hypervolume of DZ's covered by SZ's. In the rectangular case, hypervolume coverage is simply the product of marginal coverages. So extension to the general dimensional case should be easy from a mathematical perspective: simply take the product of $D$ many 1 dimensional objectives, where $D$ is the dimensionality of the space. Everything else may be handled marginally.
 
 \end{document}

@@ -40,9 +40,16 @@ def form_pmclp_pcr_1d(p, n, v, l, c, s):
     ## Create the variable names
     #y's, the linearizing surplus vars
     colnames = [] 
+    obj = []
     for j in range(n):
         for k in range(p):
             for r in range(int(binom(p, k + 1))):
+                if k % 2 == 0:
+                    obj.append(v[j])
+                    obj.append(v[j])
+                else:
+                    obj.append(-v[j])
+                    obj.append(-v[j])
                 colnames.append('y' + str(k) + str(j) + str(r) + 'f')
                 colnames.append('y' + str(k) + str(j) + str(r) + 't')
     #x's, the original decision vars
@@ -54,14 +61,13 @@ def form_pmclp_pcr_1d(p, n, v, l, c, s):
     bin_vars = []
     for i in range(p):
         for j in range(n):
-            for jp in range(n):
-                bin_vars.append('b' + str(i) + str(j) + str(jp))
+                bin_vars.append('b' + str(i) + str(j))
     colnames += bin_vars
 
     ## Create the variable bounds
     y_n = int(2*n*sum([binom(p, k) for k in range(1, p+1)]))#how many y vars?
     x_n = 2*n*p
-    b_n = p*n*n
+    b_n = p*n
     #x's and y...t's are in [0,infty), while y...f's are in (-infty, 0]. The b's are binary.
     lb = [-cplex.infinity if i % 2 == 0 else 0 for i in range(y_n)] + \
             [0 for _ in range(x_n)] + \
@@ -74,7 +80,7 @@ def form_pmclp_pcr_1d(p, n, v, l, c, s):
 
     ## Create the objective function
     #TODO: Don't count double coverage
-    obj = list(np.repeat(v, y_n/n)) + [0 for _ in range(x_n)] + [0 for _ in range(b_n)]
+    obj += [0 for _ in range(x_n)] + [0 for _ in range(b_n)]
 
     ## Create the constraints
     rhs = []
@@ -89,27 +95,39 @@ def form_pmclp_pcr_1d(p, n, v, l, c, s):
     dim_range = max([c[i] + l[i] for i in range(n)]) - min(c)
     for i in range(p):
         for j in range(n):
-            for jp in range(n):
-                ## Build constraints on the binary variable in order to achieve a conditional constraint
-                # Constrain it to be less than both x vars, so if either is zero, it will be zero
-                #constr.append([['x' + str(i) + str(j) + 'f', \
-                #    'b' + str(i) + str(j) + str(jp)], [-1, 1]])
-                constr.append([['x' + str(i) + str(jp) + 't', \
-                        'b' + str(i) + str(j) + str(jp)], [-1, 1]])
-                rhs += [0]
-                # Constrain it to be greater than or equal to each x var divided by the extent of it's rectangle
-                # This will constrain it to be 1 if either one or both of is positive.
-                #constr.append([['x' + str(i) + str(j) + 'f', \
-                        #'b' + str(i) + str(j) + str(jp)], [1, -l[j]]])
-                constr.append([['x' + str(i) + str(jp) + 't', \
-                        'b' + str(i) + str(j) + str(jp)], [1, -l[jp]]])
-                rhs += [0]
+            ## Build constraints on the binary variable in order to achieve a conditional constraint
+            # Constrain it to be less than both x vars, so if either is zero, it will be zero
+            #constr.append([['x' + str(i) + str(j) + 'f', \
+            #    'b' + str(i) + str(j) + str(jp)], [-1, 1]])
+            #TODO: This doesn't work yet, what if x_f = x_t?
+            #TODO: We know believe these constraints to be unnecessary
+            #constr.append([['x' + str(i) + str(j) + 't', \
+            #        'b' + str(i) + str(j)], [-1, 1]])
+            #rhs += [0]
 
+            # Constrain it to be greater than or equal to each x var divided by the extent of it's rectangle
+            # This will constrain it to be 1 if either one or both of is positive.
+            #constr.append([['x' + str(i) + str(j) + 'f', \
+                    #'b' + str(i) + str(j) + str(j)], [1, -l[j]]])
+            constr.append([['x' + str(i) + str(j) + 't', \
+                    'x' + str(i) + str(j) + 'f',
+                    'b' + str(i) + str(j)], [1, -1, -l[j]]])
+            rhs += [0]
+            for jp in range(n):
                 ## Add the actual desired constraint: if both x vars are positive, they can only be so far apart.
-                constr.append([['x' + str(i) + str(j) + 'f', \
-                        'x' + str(i) + str(jp) + 't', \
-                        'b' + str(i) + str(j) + str(jp)], [-1, 1, dim_range]])
-                rhs += [-c[jp] + c[j] + s[i] + dim_range]
+                #CPLEX needs us to only give one coef per var, so we need two cases.
+                if j == jp:
+                    constr.append([['x' + str(i) + str(jp) + 'f', \
+                            'x' + str(i) + str(j) + 't', \
+                            'b' + str(i) + str(j)], \
+                            [-1, 1, 2*dim_range]])
+                    rhs += [-c[j] + c[jp] + s[i] + 2*dim_range]
+                else:
+                    constr.append([['x' + str(i) + str(jp) + 'f', \
+                            'x' + str(i) + str(j) + 't', \
+                            'b' + str(i) + str(j), 'b' + str(i) + str(jp)], \
+                            [-1, 1, dim_range, dim_range]])
+                    rhs += [-c[j] + c[jp] + s[i] + 2*dim_range]
     # No negative extent rectangles
     for i in range(p):
         for j in range(n):

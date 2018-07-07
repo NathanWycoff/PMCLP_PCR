@@ -1,0 +1,165 @@
+%        File: model_formulation.tex
+%     Created: Mon Jan 29 09:00 AM 2018 E
+% Last Change: Mon Jan 29 09:00 AM 2018 E
+%
+\documentclass[a4paper]{article}
+
+\usepackage{amsmath}
+
+\title{A Linear Programming Representation of the 1 Dimensional PMCLP-PCR Problem}
+\author{Nathan Wycoff}
+
+\begin{document}
+
+\maketitle
+
+\section{Index Sets}
+
+\begin{enumerate}
+    \item Supply Zone index $i \in \{1, \ldots, p\}$
+    \item Demand Zone index $j \in \{1, \ldots, n\}$
+\end{enumerate}
+
+\section{Parameters}
+
+\begin{enumerate}
+    \item Weight of DZ $j$: $v_j$.
+    \item Length of DZ $j$: $l_j$.
+    \item Beginning point of DZ on axis $j$: $c_{j}$.
+    \item Length of SZ $i$: $s_i$.
+\end{enumerate}
+
+\section{Decision Variables}
+
+\begin{enumerate}
+    \item Where SZ $i$ begins along DZ $j$: $x_{i,j,f}$.
+    \item Where SZ $j$ ends along DZ $j$: $x_{i,j,t}$.
+\end{enumerate}
+
+There are therefore $2np$ many variables at this stage, linearization will induce more.
+
+\section{Objective Function}
+
+The objective is to maximize coverage. The coverage function is complicated by the fact that multiple coverage must be accounted for. 
+
+$k$'th order coverage is defined as area on a particular DZ covered by exactly $k$ zones simultaneously. 
+
+$k$'th order coverage among $k$ given SZ's may be detected by looking at difference between the minimum ``to" value among all SZ's and the maximum ``from" value among SZ's in consideration.
+
+In math notation, let $I$ be a set of supply zone indices, and let $a = |I|$. Then the simultaneous coverage of those $a$ supply zones over DZ $j$ can be determined as:
+
+$$\min_{i \in I} [x_{i,j,t}] - \max_{i' \in I} [x_{i',j,f}]$$
+
+To determine $a$'th order coverage, we must sum the area covered simultaneously by all possible $a$-tuples. There are $p\choose a$ such tuples.
+
+There are therefore $\sum_{k=1}^p {p\choose a}$ many terms in the objective function, partitioned into $p$ parts by ``order" of coverage, for each DZ, giving $n\sum_{k=1}^p {p\choose a}$ terms in total.
+
+Let us define $\mathcal{I}_k$ as the set of all sets of indices of cardinality $k$.
+
+\vspace{1em}
+
+Calculating coverage is good and well, but we need to relate this coverage back to the objective function. In calculating first order coverage, we double count areas covered by two SZ's, so we must subtract double coverage. However, subtracting double coverage gets rid of areas covered by three SZ's twice, so we must add back triple covered area, which counts four-times-covered area twice, which we must subtract, and so on\ldots
+
+Therefore, the objective function is to maximize the following expression:
+
+$$\textrm{maximize } \sum_{j=1}^n v_j \sum_{k=1}^{p} \sum_{I \in \mathcal{I}_k} 
+(-1)^{k-1}(\min_{i \in I} [x_{i,j,t}] - \max_{i' \in I} [x_{i',j,f}])$$
+
+\subsection{Reformulation as a Linear Objective}
+
+Though the objective function is presently nonlinear, we may linearize it with the aide of some constraints and slack variables.
+
+We first need to change all $\max$'s in the objective to $\min$'s. This may be done by negating $\min$'s arguments, and then negating the entire extremum statement, i.e. $\max\{a : a \in A\}$ becomes $-\min\{-a : a \in A\}$.
+
+At this stage, the objective function becomes:
+
+$$\textrm{maximize }\sum_{j=1}^n v_j \sum_{k=1}^{p} \sum_{I \in \mathcal{I}_k} 
+(-1)^{k-1}(\min_{i \in I} [x_{i,j,t}] + \min_{i' \in I} [-x_{i',j,f}])$$
+
+It is possible to linearize $\min$ statements under a maximization problem by adding a surplus variable which is constrained to be less than its arguments, that is:
+
+$$\textrm{maximize: } \min\{a : a \in A\}$$
+
+becomes
+
+$$\textrm{maximize } x$$
+
+$$st: - a + x \leq 0 \forall a \in A$$.
+
+Given some ordering $r$ of the sets in each $\mathcal{I}_k$, we may therefore reformulate our objective as:
+
+
+$$\textrm{maximize }\sum_{j=1}^n v_j \sum_{k=1}^{p} \sum_{r=1}^{|\mathcal{I}_k|}
+(-1)^{k-1} (y_{k,j,r,t} + y_{k,j,r,f})$$
+
+This is a linear function, as desired. However, as we just discussed, we need to add constraints. These will be discussed in the next section.
+
+There were $2np$ many variables prior to linearization. As discussed above, there are $n\sum_{k=1}^p {p \choose k}$ many terms in the objective, each of which has two slack variables, adding $2n \sum_{k=1}^p {p \choose k}$ variables for $2np + 2n\sum_{k=1}^p {p \choose k}$ many variables in the linearized problem in total. This may be simplified as $2np + n2^p$ many variables.
+
+\section{Constraints}
+
+\begin{enumerate}
+    \item Don't fall off the DZ axes ($2pn$ constraints):
+        $$x_{i,j,f} \leq l_j \forall i$$
+        $$x_{i,j,t} \leq l_j \forall i$$
+    \item We need DZ axis variables to map back to rectangles that are within specifications. This constraint may be phrased as such:
+        $$
+        x_{i,j,t} - x_{i,j,f} > 0 \implies x_{i,j,t} + c_{j} - x_{i,j',f} - c_{j'} \leq s_i \forall i,j,j'
+        $$
+
+        That is, if a DZ is ``active"  with respect to demand zone $i$, we need to make sure that it doesn't strech the SZ more than it can bear. 
+
+        We can partially linearize this constraint as follows. Introduce a binary variable $b_{i,j}$ for each DZ-SZ relationship. Then, introduce this constraint:
+        
+        $$
+        x_{i,j,t} - x_{i,j,f} \leq s_i b_{i,j}
+        $$
+
+        This gives us that if DZ $j$ is active wrt SZ $i$, $b_{i,j} = 1$ (Note: this is not an if and only if relationship. I believe that this is not problematic, since it will be iff at optimality. This deserves more investigation). 
+
+        So now we have a switch for each DZ-SZ pair, giving 1 if the pair is active. We can use this to create conditional constraints which are linear. Let $R$ denote the range of possible values in the original space, $R = \max_{i}\{c_i + l_i\} - \min_{i}\{c_i\}$.
+        $$
+        x_{i,j',t} + c_{j'} - x_{i,j,f} - c_j + Rb_{i,j} + Rb_{i,j'} \leq s_i + 2R
+        $$
+        Let's examine these constraints for each possible value of $b_{i,j}$ and $b_{i,j'}$. If one of the two is equal to 1, we can remove the corresponding $R$ from both sides, but there will still be an $R$ on the RHS. By design, a quantity of at least $R$ on the RHS means this constraint will always be satisfied (and $s_i$, being a length, is nonnegative). The situation is similar if both $b$'s are zero. However, if both are one, all terms involving $R$ cancel, and we are left with the original, desired constraint. 
+
+        But as mentioned earlier, if $x_{i,j,t} - x_{i,j,f} = 0$, there's no guarantee that the corresponding $b_{i,j} = 0$; it could be $1$. This means that we could have more constraints active than necessary. However, removing this constraint would lead to a decrease in the cost, and will therefore occur at optimality.
+
+        PREVIOUS ATTEMPT:
+        This constraint may be linearlized by introducing binary variables, call them $b_{i,j,j'}$, for each constraint. These variables will take values $0$ if $x_{i,j,f} = 0$, and value $1$ if $x_{i,j',f} > 0$. This may be achieved using linear constraints as follows:
+        \begin{itemize}
+            \item $b_{i,j,j'} \leq x_{i,j',f}$
+            \item $s_i b \geq x_{i,j',f}$
+        \end{itemize}
+        Notice that if $x_{i,j',f} = 0$, $b_{i,j,j'}$ must be zero as well. Since $b$ is binary, any nonzero value in $x_{i,j',f}$ will trigger it to shoot to 1.
+
+        \vspace{1em}
+
+        With this binary variable in hand, we can achieve the conditional constraint we desire. Let $R$ denote the range of possible values in the original space, $R = \max_{i}\{c_i + l_i\} - \min_{i}\{c_i\}$.
+        $$
+        x_{i,j',t} + c_{j'} - x_{i,j,f} - c_j + Rb \leq s_i + R
+        $$
+        Let's examine these constraints for each possible value of $b$. If $b = 1$, we cancel $R$ from both sides of the equation, TODO: FINISH
+
+    \item No ``negative extent" rectangles ($np$ constraints):
+        $$x_{i,j,t} - x_{i,j,f} \geq 0 \forall i,j$$
+    \item Nonnegativity ($2np$ constraints):
+        $$x_{i,j,t} \geq 0 \forall i,j$$
+        $$x_{i,j,f} \geq 0 \forall i,j$$
+\end{enumerate}
+
+\subsection{Linearizing Constraints}
+
+Further, if we wish to linearlize the objective function as discussed above, we must add these constraints on the slack variables:
+
+$$y_{k,j,r,t} \leq x_{i,j,t} \forall k,r,j,i \in I_{r,k}$$
+
+$$y_{k,j,r,f} \leq -x_{i,j,f} \forall k,r,j,i \in I_{r,k}$$
+
+This induces $n \sum_{k=1}^{p} {p\choose k} 2k$ constraints.
+
+\vspace{2em}
+
+In total, we therefore have $np(3 + p + 2^p)$ many constraints.
+
+\end{document}
