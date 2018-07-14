@@ -6,6 +6,7 @@
 
 \usepackage{amsmath}
 \usepackage{graphicx}
+\usepackage{enumitem}% http://ctan.org/pkg/enumitem
 
 \title{A Linear Programming Representation of the 1 Dimensional PMCLP-PCR Problem}
 \author{Nathan Wycoff}
@@ -103,7 +104,82 @@ $$
 \sum_{j=1}^n v_j \gamma_j = \sum_{j=1}^n v_j(\max_{\forall i}\{x_i,j,t\} - \min_{\forall i}\{x_i,j,f\})
 $$
 
-I'm not yet sure how to linearize this constraint, though I believe it to be possible.
+\section{Linearization}
+
+Unfortunately, maximizing a maximum is inherently nonconvex. We can, however, write this as a MIP. Let's see how to do this in general:
+
+If our initial problem is of the form:
+
+$$
+\textrm{Maximize:} \max_{i} x_i
+$$
+
+S.T.
+
+$$
+x_i \in [0, l_i]
+$$
+
+We can rewrite it as such, adding continuous variables $z_i$ and binary variables $b_i$:
+
+$$
+\textrm{Maximize:} \sum_{i} z_i
+$$
+
+S.T.
+
+\begin{enumerate}
+    \item $z_i \in [0, x_i]$
+    \item $z_i \in [0, l_i b_i]$
+    \item $\sum b_i = 1$
+    \item $b_i$ binary
+\end{enumerate}
+
+In our case, the objective is of the form 
+
+$$
+\sum_{j=1}^n v_j \gamma_j = \sum_{j=1}^n v_j(\max_{\forall i}\{x_i,j,t\} - \min_{\forall i}\{x_{i,j,f}\})
+$$
+
+First, rewrite it as such:
+$$
+\sum_{j=1}^n v_j \gamma_j = \sum_{j=1}^n v_j(\max_{\forall i}\{x_i,j,t\} + \max_{\forall i}\{-x_{i,j,f}\})
+$$
+
+Introduce variables $y_{i,j,t}$ and $y_{i,j,f}$ which will replace the two optima. Our new objective is as such:
+
+$$
+\sum_{j=1}^n v_j \gamma_j = \sum_{j=1}^n v_j(\sum_{i=1}^p y_{i,j,t} + \sum_{i=1}^p y_{i,j,f})
+$$
+
+Though we need to add constraints. To do so, also introduce binary variables $a_{i,j,t}, a_{i,j,f}$ corresponding to each term in each maximum. These will be constrained such that only one may be nonzero, which will correspond to the term which is maximal.
+
+\begin{enumerate}
+    \item Max less than items:
+        \begin{enumerate}
+            \item $y_{i,j,t} - x_{i,j,t} \leq 0$
+            \item $y_{i,j,f} + x_{i,j,f} \leq 0$
+        \end{enumerate}
+    \item Max zero if binary zero:
+        \begin{enumerate}
+            \item $y_{i,j,t} - s_i a_{i,j,t} \leq 0$
+            \item $-y_{i,j,f} - s_i a_{i,j,f} \leq 0$
+        \end{enumerate}
+    \item Only 1 max active at a time:
+        \begin{enumerate}
+            \item $\sum_{i=1}^p a_{i,j,t} = 1$ 
+            \item $\sum_{i=1}^p a_{i,j,f} = 1$
+        \end{enumerate}
+    \item Bounds on variables:
+        \begin{enumerate}
+            \item $a_{i,j,t} \in \{0, 1\}$
+            \item $a_{i,j,f} \in \{0, 1\}$
+            \item $y_{i,j,t} \in [0, \infty]$
+            \item $y_{i,j,f} \in [-\infty, 0]$
+            \item $x_{i,j,t} \in [0, s_i]$
+            \item $x_{i,j,f} \in [0, s_i]$
+        \end{enumerate}
+\end{enumerate}
 
 \section{Constraints}
 
